@@ -58,10 +58,11 @@ module "lambdas" {
   checks_queue_url   = module.sqs.checks_queue_url
   reports_bucket     = module.s3.reports_bucket_name
 
-  scans_table_arn   = module.dynamodb.scans_table_arn
-  results_table_arn = module.dynamodb.results_table_arn
-  checks_queue_arn  = module.sqs.checks_queue_arn
+  scans_table_arn    = module.dynamodb.scans_table_arn
+  results_table_arn  = module.dynamodb.results_table_arn
+  checks_queue_arn   = module.sqs.checks_queue_arn
   reports_bucket_arn = module.s3.reports_bucket_arn
+  scans_stream_arn   = module.dynamodb.scans_stream_arn
 }
 
 module "api_gateway" {

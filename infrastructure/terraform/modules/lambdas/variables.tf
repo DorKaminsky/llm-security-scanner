@@ -1,0 +1,10 @@
+variable "environment"        { type = string }
+variable "scans_table_name"   { type = string }
+variable "results_table_name" { type = string }
+variable "checks_queue_url"   { type = string }
+variable "reports_bucket"     { type = string }
+variable "scans_table_arn"    { type = string }
+variable "results_table_arn"  { type = string }
+variable "checks_queue_arn"   { type = string }
+variable "reports_bucket_arn" { type = string }
+variable "scans_stream_arn"   { type = string }
