@@ -7,6 +7,8 @@ interface Props {
 
 type Mode = 'login' | 'register' | 'confirm'
 
+const IS_LOCAL = import.meta.env.VITE_COGNITO_USER_POOL_ID === 'local_pool'
+
 export default function Auth({ onAuth }: Props) {
   const [mode, setMode] = useState<Mode>('login')
   const [email, setEmail] = useState('')
@@ -20,6 +22,7 @@ export default function Auth({ onAuth }: Props) {
     setError('')
     setLoading(true)
     try {
+      if (IS_LOCAL) { onAuth(); return }
       await signIn({ username: email, password })
       onAuth()
     } catch (err: unknown) {
@@ -34,6 +37,7 @@ export default function Auth({ onAuth }: Props) {
     setError('')
     setLoading(true)
     try {
+      if (IS_LOCAL) { onAuth(); return }
       await signUp({ username: email, password, options: { userAttributes: { email } } })
       setMode('confirm')
     } catch (err: unknown) {
