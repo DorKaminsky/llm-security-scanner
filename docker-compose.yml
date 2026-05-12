@@ -96,41 +96,48 @@ services:
   # ── Lambda services (run as HTTP servers locally via python-lambda-local) ──
   scan-orchestrator:
     build:
-      context: ./services/scan-orchestrator
+      context: ./services
+      dockerfile: scan-orchestrator/Dockerfile
     ports:
       - "8001:8080"
     <<: *service-common
 
   scan-status:
     build:
-      context: ./services/scan-status-api
+      context: ./services
+      dockerfile: scan-status-api/Dockerfile
     ports:
       - "8002:8080"
     <<: *service-common
 
   prompt-injection:
     build:
-      context: ./services/checkers/prompt-injection
+      context: ./services
+      dockerfile: checkers/prompt-injection/Dockerfile
     <<: *service-common
 
   sensitive-disclosure:
     build:
-      context: ./services/checkers/sensitive-disclosure
+      context: ./services
+      dockerfile: checkers/sensitive-disclosure/Dockerfile
     <<: *service-common
 
   dos-resilience:
     build:
-      context: ./services/checkers/dos-resilience
+      context: ./services
+      dockerfile: checkers/dos-resilience/Dockerfile
     <<: *service-common
 
   excessive-agency:
     build:
-      context: ./services/checkers/excessive-agency
+      context: ./services
+      dockerfile: checkers/excessive-agency/Dockerfile
     <<: *service-common
 
   report-generator:
     build:
-      context: ./services/report-generator
+      context: ./services
+      dockerfile: report-generator/Dockerfile
     <<: *service-common
 
   # ── Frontend ────────────────────────────────────────────────────────────────

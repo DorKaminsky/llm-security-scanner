@@ -2,10 +2,10 @@ FROM public.ecr.aws/lambda/python:3.12
 
 WORKDIR /var/task
 
-COPY requirements.txt .
+COPY scan-status-api/requirements.txt .
 RUN pip install -r requirements.txt --target .
 
-COPY ../shared/models.py .
-COPY handler.py .
+COPY shared/models.py .
+COPY scan-status-api/handler.py .
 
 CMD ["handler.handler"]
