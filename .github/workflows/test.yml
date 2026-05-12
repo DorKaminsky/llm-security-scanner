@@ -1,0 +1,96 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  test-services:
+    name: Test Python Services
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - scan-orchestrator
+          - checkers/prompt-injection
+          - checkers/sensitive-disclosure
+          - checkers/dos-resilience
+          - checkers/excessive-agency
+          - report-generator
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r services/${{ matrix.service }}/requirements.txt
+          pip install pytest pytest-cov moto[all]
+
+      - name: Run tests
+        run: pytest services/${{ matrix.service }}/tests/ -v --cov=. --cov-report=xml
+        env:
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_ACCESS_KEY_ID: test
+          AWS_SECRET_ACCESS_KEY: test
+          ENVIRONMENT: test
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: ${{ matrix.service }}
+
+  test-frontend:
+    name: Test Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Type check
+        run: npm run type-check
+        working-directory: frontend
+
+      - name: Lint
+        run: npm run lint
+        working-directory: frontend
+
+      - name: Test
+        run: npm test -- --coverage --watchAll=false
+        working-directory: frontend
+
+  lint-terraform:
+    name: Lint Terraform
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.0"
+
+      - name: Terraform fmt check
+        run: terraform fmt -check -recursive
+        working-directory: infrastructure/terraform
+
+      - name: Terraform validate
+        run: |
+          terraform init -backend=false
+          terraform validate
+        working-directory: infrastructure/terraform
