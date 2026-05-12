@@ -36,8 +36,8 @@ class LLMProvider(str, Enum):
 @dataclass
 class LLMTarget:
     provider: LLMProvider
-    model: str
     api_key: str
+    model: Optional[str] = None
     endpoint_url: Optional[str] = None
     system_prompt: Optional[str] = None
 

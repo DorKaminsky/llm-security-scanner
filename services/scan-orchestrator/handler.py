@@ -50,17 +50,13 @@ def _parse_and_validate_target(body: dict) -> LLMTarget:
     if not provider_str or provider_str not in [p.value for p in LLMProvider]:
         raise ValueError(f"Invalid provider. Must be one of: {[p.value for p in LLMProvider]}")
 
-    model = body.get("model", "").strip()
-    if not model:
-        raise ValueError("model is required")
-
     api_key = body.get("api_key", "").strip()
     if not api_key:
         raise ValueError("api_key is required")
 
     return LLMTarget(
         provider=LLMProvider(provider_str),
-        model=model,
+        model=body.get("model_id", "").strip() or body.get("model", "").strip() or None,
         api_key=api_key,
         endpoint_url=body.get("endpoint_url"),
         system_prompt=body.get("system_prompt"),
