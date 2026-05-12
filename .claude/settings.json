@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(gh *)",
+      "Bash(python *)",
+      "Bash(pip *)",
+      "Bash(pytest *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(terraform *)",
+      "Bash(docker *)",
+      "Bash(docker-compose *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(echo *)",
+      "Bash(touch *)",
+      "Bash(zip *)",
+      "Bash(unzip *)",
+      "Bash(jq *)",
+      "Bash(curl *)",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(git reset --hard *)",
+      "Bash(terraform destroy *)",
+      "Bash(sudo *)",
+      "Bash(aws iam delete-*)",
+      "Bash(aws s3 rb *)",
+      "Bash(aws cognito-idp delete-user-pool *)"
+    ]
+  }
+}
