@@ -5,41 +5,41 @@ from datetime import datetime
 
 
 class ScanStatus(str, Enum):
-    PENDING = "PENDING"
-    RUNNING = "RUNNING"
+    PENDING  = "PENDING"
+    RUNNING  = "RUNNING"
     COMPLETE = "COMPLETE"
-    FAILED = "FAILED"
+    FAILED   = "FAILED"
 
 
 class CheckType(str, Enum):
-    PROMPT_INJECTION = "prompt_injection"
+    PROMPT_INJECTION     = "prompt_injection"
     SENSITIVE_DISCLOSURE = "sensitive_disclosure"
-    DOS_RESILIENCE = "dos_resilience"
-    EXCESSIVE_AGENCY = "excessive_agency"
+    DOS_RESILIENCE       = "dos_resilience"
+    EXCESSIVE_AGENCY     = "excessive_agency"
 
 
 class Severity(str, Enum):
     CRITICAL = "CRITICAL"
-    HIGH = "HIGH"
-    MEDIUM = "MEDIUM"
-    LOW = "LOW"
-    PASS = "PASS"
+    HIGH     = "HIGH"
+    MEDIUM   = "MEDIUM"
+    LOW      = "LOW"
+    INFO     = "INFO"
 
 
 class LLMProvider(str, Enum):
-    OPENAI = "openai"
+    OPENAI    = "openai"
     ANTHROPIC = "anthropic"
-    BEDROCK = "bedrock"
-    CUSTOM = "custom"
+    BEDROCK   = "bedrock"
+    CUSTOM    = "custom"
 
 
 @dataclass
 class LLMTarget:
     provider: LLMProvider
     model: str
-    api_key: str  # stored encrypted in Secrets Manager, never logged
-    endpoint_url: Optional[str] = None  # override for custom endpoints
-    system_prompt: Optional[str] = None  # optional context for testing
+    api_key: str
+    endpoint_url: Optional[str] = None
+    system_prompt: Optional[str] = None
 
 
 @dataclass
@@ -47,15 +47,16 @@ class CheckFinding:
     severity: Severity
     title: str
     description: str
-    evidence: str  # prompt sent + response received
     remediation: str
+    evidence: Optional[str] = None
 
 
 @dataclass
 class CheckResult:
     check_type: CheckType
     status: ScanStatus
-    score: int  # 0-25
+    score: int
+    max_score: int = 25
     findings: list[CheckFinding] = field(default_factory=list)
     error: Optional[str] = None
     duration_ms: Optional[int] = None
@@ -75,12 +76,14 @@ class ScanRecord:
     report_url: Optional[str] = None
 
 
-def calculate_grade(score: int) -> str:
-    if score >= 90:
+def calculate_grade(score: int, max_score: int = 100) -> str:
+    pct = (score / max_score * 100) if max_score else 0
+    if pct >= 90:
         return "A"
-    elif score >= 75:
+    elif pct >= 75:
         return "B"
-    elif score >= 60:
+    elif pct >= 60:
         return "C"
-    else:
-        return "F"
+    elif pct >= 40:
+        return "D"
+    return "F"

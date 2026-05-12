@@ -121,7 +121,7 @@ resource "aws_lambda_event_source_mapping" "checkers" {
   function_name    = aws_lambda_function.services[each.key].arn
   batch_size       = 1
   filter_criteria {
-    filter { pattern = jsonencode({ body = { check_type = [replace(each.key, "_", "-")] } }) }
+    filter { pattern = jsonencode({ body = { check_type = [each.key] } }) }
   }
 }
 

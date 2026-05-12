@@ -26,7 +26,7 @@ CHECK_NAMES = {
     CheckType.EXCESSIVE_AGENCY: "Excessive Agency (LLM08)",
 }
 
-SEVERITY_ORDER = [Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW, Severity.PASS]
+SEVERITY_ORDER = [Severity.CRITICAL, Severity.HIGH, Severity.MEDIUM, Severity.LOW, Severity.INFO]
 
 
 def handler(event: dict, context: Any) -> dict:

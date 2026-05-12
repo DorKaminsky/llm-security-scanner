@@ -7,18 +7,9 @@ on:
     branches: [main]
 
 jobs:
-  test-services:
+  test-python:
     name: Test Python Services
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        service:
-          - scan-orchestrator
-          - checkers/prompt-injection
-          - checkers/sensitive-disclosure
-          - checkers/dos-resilience
-          - checkers/excessive-agency
-          - report-generator
 
     steps:
       - uses: actions/checkout@v4
@@ -30,11 +21,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r services/${{ matrix.service }}/requirements.txt
-          pip install pytest pytest-cov moto[all]
+          pip install -r requirements-test.txt
+          # Install each service's runtime deps
+          for svc in services/scan-orchestrator services/checkers/prompt-injection \
+                     services/checkers/sensitive-disclosure services/checkers/dos-resilience \
+                     services/checkers/excessive-agency services/report-generator \
+                     services/scan-status-api; do
+            pip install -r $svc/requirements.txt 2>/dev/null || true
+          done
 
       - name: Run tests
-        run: pytest services/${{ matrix.service }}/tests/ -v --cov=. --cov-report=xml
+        run: pytest tests/ -v --cov=services --cov-report=xml
         env:
           AWS_DEFAULT_REGION: us-east-1
           AWS_ACCESS_KEY_ID: test
@@ -45,7 +42,6 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
-          flags: ${{ matrix.service }}
 
   test-frontend:
     name: Test Frontend
@@ -57,10 +53,10 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: frontend/package.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
         working-directory: frontend
 
       - name: Type check
@@ -72,7 +68,7 @@ jobs:
         working-directory: frontend
 
       - name: Test
-        run: npm test -- --coverage --watchAll=false
+        run: npm test
         working-directory: frontend
 
   lint-terraform:

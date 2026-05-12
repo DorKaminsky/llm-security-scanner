@@ -1,112 +1,153 @@
 version: "3.9"
 
+# Local development stack using LocalStack for AWS services.
+# Usage: cp .env.example .env && docker-compose up
+# Frontend: http://localhost:5173
+# API:      http://localhost:8000
+
+x-aws-local: &aws-local
+  AWS_ENDPOINT_URL: http://localstack:4566
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+
+x-service-common: &service-common
+  environment:
+    <<: *aws-local
+    ENVIRONMENT: local
+    LOG_LEVEL: DEBUG
+    SCANS_TABLE: scans
+    RESULTS_TABLE: results
+    CHECKS_QUEUE_URL: http://localstack:4566/000000000000/checks.fifo
+    REPORTS_BUCKET: llm-scanner-reports
+  depends_on:
+    localstack:
+      condition: service_healthy
+
 services:
+  # ── Infrastructure ─────────────────────────────────────────────────────────
   localstack:
-    image: localstack/localstack:3.0
+    image: localstack/localstack:3.4
     ports:
       - "4566:4566"
     environment:
-      - SERVICES=lambda,apigateway,sqs,dynamodb,s3,cognito-idp,secretsmanager,sts
-      - DEBUG=0
-      - AWS_DEFAULT_REGION=us-east-1
+      SERVICES: dynamodb,sqs,s3,secretsmanager,sts
+      DEBUG: "0"
+      AWS_DEFAULT_REGION: us-east-1
     volumes:
       - ./infrastructure/localstack/init:/etc/localstack/init/ready.d
       - localstack_data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
+  # ── API Gateway (lightweight local proxy) ───────────────────────────────────
+  api-gateway:
+    image: python:3.12-slim
+    command: >
+      python -c "
+      import json, os, sys, http.server, urllib.request
+      from urllib.parse import urlparse
+
+      class Proxy(http.server.BaseHTTPRequestHandler):
+          def log_message(self, fmt, *args): pass
+          def do_POST(self): self._proxy('POST')
+          def do_GET(self): self._proxy('GET')
+          def do_OPTIONS(self): self._cors(200)
+          def _cors(self, code):
+              self.send_response(code)
+              self.send_header('Access-Control-Allow-Origin', '*')
+              self.send_header('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+              self.send_header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+              self.end_headers()
+          def _proxy(self, method):
+              path = self.path
+              if path.startswith('/scans') and method == 'POST':
+                  target = 'http://scan-orchestrator:8080' + path
+              elif path.startswith('/scans/') and method == 'GET':
+                  target = 'http://scan-status:8080' + path
+              else:
+                  self._cors(404); return
+              length = int(self.headers.get('Content-Length', 0))
+              body = self.rfile.read(length) if length else None
+              req = urllib.request.Request(target, data=body, method=method)
+              req.add_header('Content-Type', self.headers.get('Content-Type', 'application/json'))
+              req.add_header('Authorization', self.headers.get('Authorization', ''))
+              try:
+                  resp = urllib.request.urlopen(req, timeout=60)
+                  data = resp.read()
+              except urllib.error.HTTPError as e:
+                  data = e.read(); resp = e
+              self.send_response(resp.status if hasattr(resp,'status') else resp.code)
+              self.send_header('Content-Type', 'application/json')
+              self.send_header('Access-Control-Allow-Origin', '*')
+              self.end_headers()
+              self.wfile.write(data)
+      http.server.HTTPServer(('0.0.0.0', 8000), Proxy).serve_forever()
+      "
     ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend/src:/app/src
-    environment:
-      - REACT_APP_API_URL=http://localhost:8000
-      - REACT_APP_ENV=local
+      - "8000:8000"
     depends_on:
-      - api-gateway
+      - scan-orchestrator
+      - scan-status
 
+  # ── Lambda services (run as HTTP servers locally via python-lambda-local) ──
   scan-orchestrator:
     build:
       context: ./services/scan-orchestrator
     ports:
       - "8001:8080"
-    environment:
-      - AWS_ENDPOINT_URL=http://localstack:4566
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-      - ENVIRONMENT=local
-    env_file:
-      - .env
-    depends_on:
-      - localstack
+    <<: *service-common
 
-  prompt-injection-checker:
+  scan-status:
+    build:
+      context: ./services/scan-status-api
+    ports:
+      - "8002:8080"
+    <<: *service-common
+
+  prompt-injection:
     build:
       context: ./services/checkers/prompt-injection
-    environment:
-      - AWS_ENDPOINT_URL=http://localstack:4566
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-    env_file:
-      - .env
-    depends_on:
-      - localstack
+    <<: *service-common
 
-  sensitive-disclosure-checker:
+  sensitive-disclosure:
     build:
       context: ./services/checkers/sensitive-disclosure
-    environment:
-      - AWS_ENDPOINT_URL=http://localstack:4566
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-    env_file:
-      - .env
-    depends_on:
-      - localstack
+    <<: *service-common
 
-  dos-resilience-checker:
+  dos-resilience:
     build:
       context: ./services/checkers/dos-resilience
-    environment:
-      - AWS_ENDPOINT_URL=http://localstack:4566
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-    env_file:
-      - .env
-    depends_on:
-      - localstack
+    <<: *service-common
 
-  excessive-agency-checker:
+  excessive-agency:
     build:
       context: ./services/checkers/excessive-agency
-    environment:
-      - AWS_ENDPOINT_URL=http://localstack:4566
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-    env_file:
-      - .env
-    depends_on:
-      - localstack
+    <<: *service-common
 
   report-generator:
     build:
       context: ./services/report-generator
+    <<: *service-common
+
+  # ── Frontend ────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:3000"
+    volumes:
+      - ./frontend/src:/app/src
     environment:
-      - AWS_ENDPOINT_URL=http://localstack:4566
-      - AWS_DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
-    env_file:
-      - .env
+      VITE_API_URL: http://localhost:8000
+      VITE_COGNITO_USER_POOL_ID: local_pool
+      VITE_COGNITO_CLIENT_ID: local_client
     depends_on:
-      - localstack
+      - api-gateway
 
 volumes:
   localstack_data:
