@@ -12,11 +12,15 @@ Submit your LLM endpoint, get a scored security report with actionable remediati
 
 ---
 
-## Sample Report
+## Screenshots
 
-![Security Report](docs/report-screenshot.png)
+![App UI](docs/app-screenshot.png)
 
-*Grade A · 92/100 — Anthropic claude-3-5-haiku-20241022 scored across 4 OWASP checks*
+*Report results page — Grade A · 92/100 with radar chart across 4 OWASP checks*
+
+![PDF Report](docs/report-screenshot.png)
+
+*Generated PDF report with per-check scores and remediation guidance*
 
 ---
 
