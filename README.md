@@ -12,6 +12,18 @@ Submit your LLM endpoint, get a scored security report with actionable remediati
 
 ---
 
+## Sample Report
+
+![Security Report](docs/report-screenshot.png)
+
+*Grade A · 92/100 — Anthropic claude-3-5-haiku-20241022 scored across 4 OWASP checks*
+
+---
+
+## What It Does
+
+Point the scanner at any OpenAI-compatible, Anthropic, or custom LLM endpoint. It fires adversarial probes across four OWASP categories and returns a scored PDF + JSON security report:
+
 ## What It Does
 
 Point the scanner at any OpenAI-compatible, Anthropic, or custom LLM endpoint. It fires adversarial probes across four OWASP categories and returns a scored PDF + JSON security report:
